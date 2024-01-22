@@ -1,1 +1,1 @@
-# golang windows firebird
+# golang windows service
