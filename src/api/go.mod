@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/joho/godotenv v1.5.1
-	github.com/mnogokotin/golang-packages v1.0.1
+	github.com/mnogokotin/golang-packages v1.1.3
 )
 
 require (
