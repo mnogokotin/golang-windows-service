@@ -1,9 +1,12 @@
 package app
 
 import (
+	"context"
 	"github.com/joho/godotenv"
 	"github.com/mnogokotin/golang-windows-service/internal/service"
 	"os"
+	"strconv"
+	"time"
 )
 
 func init() {
@@ -13,26 +16,21 @@ func init() {
 }
 
 func Run() {
-	outputFilePath := os.Getenv("OUTPUT_FILE_PATH")
+	ctx, cancel := context.WithCancel(context.Background())
+	updateInterval, _ := strconv.Atoi(os.Getenv("UPDATE_INTEVAL"))
+	go task(ctx, time.Duration(updateInterval))
+	time.Sleep(10 * time.Minute)
+	cancel()
+}
 
-	f, err := os.OpenFile(outputFilePath, os.O_CREATE|os.O_RDONLY, 0755)
-	defer f.Close()
-	if err != nil {
-		panic(err)
-	}
-	lastLineId, err := service.GetLastLineId(f)
-	if err != nil {
-		lastLineId = "0"
-	}
-
-	eventModels := service.GetEventModelsWithGreaterId(lastLineId)
-	if len(eventModels) > 0 {
-		f, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
-		defer f.Close()
-		if err != nil {
-			panic(err)
+func task(ctx context.Context, updateInterval time.Duration) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			service.ReadFromDbAndWriteToFile()
 		}
-
-		service.WriteEventsToFile(f, eventModels)
+		time.Sleep(updateInterval * time.Second)
 	}
 }
