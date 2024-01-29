@@ -2,11 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/joho/godotenv"
+	"github.com/golang-migrate/migrate/v4"
 	"log"
 	"time"
 
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/mnogokotin/golang-packages/database/postgres"
@@ -18,10 +17,6 @@ const (
 )
 
 func main() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	databaseConnectionUri := postgres.GetConnectionUri()
 	if len(databaseConnectionUri) == 0 {
 		log.Fatalf("migrate: environment variables not declared")

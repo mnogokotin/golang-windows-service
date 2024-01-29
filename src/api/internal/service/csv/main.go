@@ -1,4 +1,4 @@
-package service
+package csv
 
 import (
 	"encoding/csv"
@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+type Config struct {
+	csvSeparator string
+}
+
+func newConfig() *Config {
+	return &Config{csvSeparator: "|"}
+}
+
 func GetLastLineId(file *os.File) (string, error) {
 	lastLine, err := ufile.GetLastLine(file)
 	if err != nil {
@@ -18,13 +26,15 @@ func GetLastLineId(file *os.File) (string, error) {
 }
 
 func getIdFromLine(line string) string {
-	lineData := strings.Split(line, os.Getenv("CSV_SEPARATOR"))
+	c := newConfig()
+	lineData := strings.Split(line, c.csvSeparator)
 	return lineData[0]
 }
 
 func WriteEventsToFile(file *os.File, eventModels []model.Event) {
+	c := newConfig()
 	w := csv.NewWriter(file)
-	w.Comma = []rune(os.Getenv("CSV_SEPARATOR"))[0]
+	w.Comma = []rune(c.csvSeparator)[0]
 	defer w.Flush()
 
 	for _, m := range eventModels {
