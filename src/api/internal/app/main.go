@@ -3,18 +3,15 @@ package app
 import (
 	"context"
 	"github.com/kardianos/service"
-	"github.com/mnogokotin/golang-windows-service/internal/service/task"
+	"github.com/mnogokotin/golang-packages/database/postgres"
+	"github.com/mnogokotin/golang-windows-service/internal/config"
+	"github.com/mnogokotin/golang-windows-service/internal/service/csv"
+	"github.com/mnogokotin/golang-windows-service/internal/service/database"
+	"github.com/mnogokotin/golang-windows-service/internal/service/file"
+	"log"
 	"os"
 	"time"
 )
-
-type Config struct {
-	updateInteval int
-}
-
-func newConfig() *Config {
-	return &Config{updateInteval: 1}
-}
 
 var logger service.Logger
 
@@ -26,10 +23,21 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run() {
-	c := newConfig()
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pg, err := postgres.New(cfg.PG.URL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pg.Close()
+
 	ctx, cancel := context.WithCancel(context.Background())
-	go task1(ctx, time.Duration(c.updateInteval))
-	time.Sleep(10 * time.Minute)
+	go task(ctx, cfg.Service.UpdateInterval, cfg.Service.OutputFilePath, cfg.Service.CsvSeparator, pg)
+
+	time.Sleep(cfg.Service.CancelInterval)
 	cancel()
 }
 
@@ -38,29 +46,28 @@ func (p *program) Stop(s service.Service) error {
 	return nil
 }
 
-func Main() {
+func Run() {
 	svcConfig := &service.Config{
 		Name:        "GolangService",
-		DisplayName: "Golang Service",
-		Description: "Golang Service (Windows)",
+		DisplayName: "Golang service",
 	}
 
-	prg := &program{}
-	s, err := service.New(prg, svcConfig)
+	p := &program{}
+	s, err := service.New(p, svcConfig)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	if len(os.Args) > 1 {
 		err = service.Control(s, os.Args[1])
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		return
 	}
 
 	logger, err = s.Logger(nil)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	err = s.Run()
 	if err != nil {
@@ -68,14 +75,37 @@ func Main() {
 	}
 }
 
-func task1(ctx context.Context, updateInterval time.Duration) {
+func task(ctx context.Context, updateInterval time.Duration, outputFilePath string, csvSeparator string, pg *postgres.Postgres) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			task.ReadFromDbAndWriteToFile()
+			f, err := file.OpenOrCreateFileOnRead(outputFilePath)
+			defer f.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			lastLineId, err := csv.GetLastLineId(f, csvSeparator)
+			if err != nil {
+				lastLineId = "0"
+			}
+
+			eventModels := database.GetEventModelsWithGreaterId(pg, lastLineId)
+			if len(eventModels) > 0 {
+				f, err := file.OpenFileOnWriteAtTheEnd(outputFilePath)
+				defer f.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				err2 := file.WriteModelsToFile(f, csvSeparator, eventModels)
+				if err2 != nil {
+					log.Fatal(err2)
+				}
+			}
 		}
-		time.Sleep(updateInterval * time.Second)
+		time.Sleep(updateInterval)
 	}
 }

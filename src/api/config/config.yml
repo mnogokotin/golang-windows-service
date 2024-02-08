@@ -1,0 +1,13 @@
+env: local2
+
+app:
+  name: Golang service
+
+service:
+  output_file_path: output.csv
+  update_inteval: 1s
+  cancel_inteval: 10m
+  csv_separator: "|"
+
+pg:
+  url: postgres://golang_windows_service_user:golang_windows_service_user_password@host.docker.internal:54350/golang_windows_service?sslmode=disable

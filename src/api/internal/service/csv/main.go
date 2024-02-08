@@ -1,45 +1,32 @@
 package csv
 
 import (
-	"encoding/csv"
+	"fmt"
 	ufile "github.com/mnogokotin/golang-packages/utils/file"
-	"github.com/mnogokotin/golang-windows-service/internal/model"
 	"os"
-	"strconv"
+	"reflect"
 	"strings"
 )
 
-type Config struct {
-	csvSeparator string
-}
-
-func newConfig() *Config {
-	return &Config{csvSeparator: "|"}
-}
-
-func GetLastLineId(file *os.File) (string, error) {
+func GetLastLineId(file *os.File, csvSeparator string) (string, error) {
 	lastLine, err := ufile.GetLastLine(file)
 	if err != nil {
 		return "", err
 	}
-	return getIdFromLine(lastLine), nil
+	return getIdFromLine(lastLine, csvSeparator), nil
 }
 
-func getIdFromLine(line string) string {
-	c := newConfig()
-	lineData := strings.Split(line, c.csvSeparator)
+func getIdFromLine(line string, csvSeparator string) string {
+	lineData := strings.Split(line, csvSeparator)
 	return lineData[0]
 }
 
-func WriteEventsToFile(file *os.File, eventModels []model.Event) {
-	c := newConfig()
-	w := csv.NewWriter(file)
-	w.Comma = []rune(c.csvSeparator)[0]
-	defer w.Flush()
-
-	for _, m := range eventModels {
-		if err := w.Write([]string{strconv.Itoa(m.ID), m.Date}); err != nil {
-			panic(err)
-		}
+func GetStringSliceFromModel(model interface{}) []string {
+	var line []string
+	v := reflect.ValueOf(model)
+	for i := 0; i < v.NumField(); i++ {
+		fieldValue := v.Field(i).Interface()
+		line = append(line, fmt.Sprint(fieldValue))
 	}
+	return line
 }
