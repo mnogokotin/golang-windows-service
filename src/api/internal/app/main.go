@@ -81,30 +81,32 @@ func task(ctx context.Context, updateInterval time.Duration, outputFilePath stri
 		case <-ctx.Done():
 			return
 		default:
-			f, err := file.OpenOrCreateFileOnRead(outputFilePath)
-			defer f.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			lastLineId, err := csv.GetLastLineId(f, csvSeparator)
-			if err != nil {
-				lastLineId = "0"
-			}
-
-			eventModels := database.GetEventModelsWithGreaterId(pg, lastLineId)
-			if len(eventModels) > 0 {
-				f, err := file.OpenFileOnWriteAtTheEnd(outputFilePath)
+			func() {
+				f, err := file.OpenOrCreateFileOnRead(outputFilePath)
 				defer f.Close()
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				err2 := file.WriteModelsToFile(f, csvSeparator, eventModels)
-				if err2 != nil {
-					log.Fatal(err2)
+				lastLineId, err := csv.GetLastLineId(f, csvSeparator)
+				if err != nil {
+					lastLineId = "0"
 				}
-			}
+
+				eventModels := database.GetEventModelsWithGreaterId(pg, lastLineId)
+				if len(eventModels) > 0 {
+					f, err := file.OpenFileOnWriteAtTheEnd(outputFilePath)
+					defer f.Close()
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					err = file.WriteModelsToFile(f, csvSeparator, eventModels)
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+			}()
 		}
 		time.Sleep(updateInterval)
 	}

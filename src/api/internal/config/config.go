@@ -25,22 +25,22 @@ type (
 	}
 
 	PG struct {
-		URL string `yaml:"url" env:"PG_URL"`
-		//URL string `env-required:"true" env:"PG_URL"`
+		URL string `env:"PG_URL"`
 	}
 )
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 
-	err := cleanenv.ReadConfig("./config/config.yml", cfg)
+	err := cleanenv.ReadConfig("./config/main.yml", cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = cleanenv.ReadEnv(cfg)
+	err = cleanenv.ReadConfig(".env", cfg)
 	if err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
 }
