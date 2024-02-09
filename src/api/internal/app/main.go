@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"github.com/kardianos/service"
 	"github.com/mnogokotin/golang-packages/database/postgres"
+	ufile "github.com/mnogokotin/golang-packages/utils/file"
 	"github.com/mnogokotin/golang-windows-service/internal/config"
 	"github.com/mnogokotin/golang-windows-service/internal/service/csv"
 	"github.com/mnogokotin/golang-windows-service/internal/service/database"
@@ -88,9 +90,17 @@ func task(ctx context.Context, updateInterval time.Duration, outputFilePath stri
 					log.Fatal(err)
 				}
 
-				lastLineId, err := csv.GetLastLineId(f, csvSeparator)
+				lastLine, err := ufile.GetLastLine(f)
+				lastLineId := ""
 				if err != nil {
-					lastLineId = "0"
+					var emptyFileError *ufile.EmptyFileError
+					if errors.As(err, &emptyFileError) {
+						lastLineId = "0"
+					} else {
+						log.Fatal(err)
+					}
+				} else {
+					lastLineId = csv.GetIdFromLine(lastLine, csvSeparator)
 				}
 
 				eventModels := database.GetEventModelsWithGreaterId(pg, lastLineId)
