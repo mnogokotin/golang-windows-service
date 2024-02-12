@@ -24,12 +24,5 @@ services:
             timeout: 3s
             retries: 10
         restart: always
-    nginx:
-        build: docker/nginx
-        ports:
-            - ${APP_PORT:-8000}:80
-        depends_on:
-            - go
-        restart: always
 volumes:
     postgres_data:

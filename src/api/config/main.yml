@@ -4,7 +4,7 @@ app:
   name: Golang service
 
 service:
-  output_file_path: ./assets/output.csv
+  output_file_path: ./storage/output.csv
   update_inteval: 1s
   cancel_inteval: 10m
   csv_separator: "|"
