@@ -5,7 +5,7 @@ RUN apk update \
     && apk add make
 
 # copy project files
-COPY ./src/api/. /app
+COPY ./. /app
 WORKDIR /app
 
 # build app
